@@ -3,12 +3,18 @@ library(rcompanion)
 library(WRS2)
 library(tidyverse)
 
+# 1. En el trabajo de título de un estudiante del DIINF se reportan los siguientes tiempos de ejecución (en milisegundos)
+#medidos para dos versiones de un algoritmo genético para resolver instancias del problema del vendedor viajero disponibles en repositorios públicos.
+#¿Es uno de los algoritmos más rápido que el otro? Aplique una transformación de datos adecuada para responder.
+
+
+
 # Datos para preguntas '2 y '3
 
 datos_anterior <- read.csv2("EP11 Datos.csv")
 
 
-# 1.
+# Transformar tabla a data.frame para que pueda ser procesada en R.
 
 instanciaA <- c(129, 109, 28, 178, 74, 16, 87, 108, 149, 78)
 tiempoA <- c(1510394, 402929, 885722, 4428151,48667,834565, 70599, 783108,210041, 37449)
@@ -23,6 +29,7 @@ algoritmos <- data.frame(tiempoA, tiempoB)
 g <- gghistogram(algoritmoA, x = "instanciaA")
 print(g)
 
+# Transformar datos según Tukey
 transformarDatos <- function(datos){
   lambda <- transformTukey(datos, start = -1, end = 1, 
                              int = 0.1, plotit = TRUE, 
@@ -35,6 +42,7 @@ transformarDatos <- function(datos){
   return(list(lambda, datosTukey))
 }
 
+# Obtener datos transformados
 transfA <- transformarDatos(algoritmoA$tiempoA)
 lambda_A <- transfA[1]
 datosTukeyA <- transfA[2]
@@ -43,7 +51,25 @@ transfB <- transformarDatos(algoritmoB$tiempoB)
 lambda_B <- transfB[1]
 datosTukeyB <- transfB[2]
 
+# Unificar datos transformados en una sola tabla.
 tiemposTukey <- data.frame(datosTukeyA, datosTukeyB)
+
+# Realizar la prueba T de Student
+# Se aplica con un nivel de significación de 0.05
+
+# Formulación de hipótesis
+# H0 = Los tiempos de ejecución del algoritmo A, son iguales a los tiempos de ejecución del algoritmo B (ninguno es mas rápido que otro)
+# H1 = Los tiempos de ejecución del algoritmo A, son diferentes a los tiempos de ejecución del algoritmo B (Uno es más rápido que el otro)
+
+# H0 = tA = tB
+# h1 = tA != tB
+
+# Se corrobora supuesto de normalidad mediante Shapiro Wilk
+normalidadA = shapiro.test(datosTukeyA[[1]])
+normalidadB = shapiro.test(datosTukeyB[[1]])
+# Las observaciones provienen de una distribución cercana a la normal (p>alfa)
+
+# Como las muestras son independientes y aleatorias, se puede proceder a aplicar la prueba.
 
 alfa <- 0.05
 prueba <- t.test(x = datosTukeyA[[1]], 
@@ -54,6 +80,9 @@ prueba <- t.test(x = datosTukeyA[[1]],
                  conf.level = 1 - alfa)
 
 print(prueba$p.value)
+
+# Como p = 0.9996, y p > alfa, se falla al rechazar la hipótesis nula, por lo que, con un 
+# 95% de confianza, se puede asegurar que ningún algoritmo es más rapido que otro (los tiempos de ejecución son iguales)
 
 #####################
 ####################
