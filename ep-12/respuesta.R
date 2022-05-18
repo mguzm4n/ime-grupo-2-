@@ -1,6 +1,12 @@
 library(ggpubr)
 library(rcompanion)
 library(WRS2)
+library(tidyverse)
+
+# Datos para preguntas '2 y '3
+
+datos_anterior <- read.csv2("EP11 Datos.csv")
+
 
 # 1.
 
@@ -52,14 +58,12 @@ print(prueba$p.value)
 
 # 2.
 
-datos2 <- read.csv2("EP11 Datos.csv")
-
 # Contexto: Se desea realizar una aplicaci?n de citas y se 
 # requiere evaluar los grupos a los que irá enfocada la app.
 # Por ello se desea estudiar el promedio de edad de hombres y mujeres 
 # que están solteros(as) en el rango de edad entre 20 y 40 a?os.
 
-adulto_joven <-  datos2 %>% filter(edad > 20 & edad < 40)
+adulto_joven <-  datos_anterior %>% filter(edad > 20 & edad < 40)
 set.seed(198)
 n <- 350
 adulto_joven <- adulto_joven %>% sample_n(n) %>% select(sexo, ecivil, edad)
@@ -69,7 +73,7 @@ solteras <- adulto_joven %>% filter(ecivil == "Soltero(a)" & sexo == "Mujer")
 solteras_edad <- solteras$edad
 
 edad <- c(solteros_edad, solteras_edad)
-genero <- c(rep("M", length(solteros_edad)), rep("F"  length(solteras_edad)))
+genero <- c(rep("M", length(solteros_edad)), rep("F", length(solteras_edad)))
 datos_df <- data.frame(edad, genero)
 
 # Comprobar normalidad
@@ -94,20 +98,16 @@ g <- ggqqplot(datos_truncados, x="edad",facet.by = "genero",
               palette = c("blue", "red") , color = "genero" )
 print(g) 
 # Aplicar prueba de Yuen
-prueba <- yuen(edad ~ genero, data=datos_df, tr=gamma)
-print(prueba)
+prueba_yuen <- yuen(edad ~ genero, data=datos_df, tr=gamma)
+print(prueba_yuen)
 
-
+###############
+###############
 
 # 3
 
-library(tidyverse)
-
-datos <- read.csv2("EP11 Datos.csv")
-
 # Contexto e hipótesis:
 
-# 2.
 # Dependiendo de cuánto ganan (personas de chile) influye en si van a pie, en vehiculo 
 # o en transporte publico en su movilización en el día a día.
 
@@ -121,7 +121,7 @@ datos <- read.csv2("EP11 Datos.csv")
 set.seed(891)
 n2 <- 450
 
-datos2 <- datos %>% sample_n(n2) %>% select(region, ytotcorh, o25c)
+datos2 <- datos_anterior %>% sample_n(n2) %>% select(region, ytotcorh, o25c)
 
 
 motorizado <- datos2 %>% filter(o25c == "Vehículo motorizado particular (auto, camioneta, motocicleta") 
