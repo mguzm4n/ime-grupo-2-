@@ -55,35 +55,62 @@ prueba <- t.test(x = datosTukeyA[[1]],
 
 print(prueba$p.value)
 
+#####################
+####################
 
 # 2.
 
-# Contexto: Se desea realizar una aplicaci?n de citas y se 
+# Contexto: Se desea realizar una aplicación de citas y se 
 # requiere evaluar los grupos a los que irá enfocada la app.
 # Por ello se desea estudiar el promedio de edad de hombres y mujeres 
-# que están solteros(as) en el rango de edad entre 20 y 40 a?os.
+# que están solteros(as) en el rango de edad entre 20 y 40 años.
+
+# Hipótesis:
+
+# H_0: En promedio, la edad de las mujeres y hombres solteros es la misma.
+# H_A: La edad promedio de hombres y mujeres solteras difieren o son distintas.
+
+# H_0: u_M = u_F, donde M : male, F: female
+# H_A: u_M != u_F
 
 adulto_joven <-  datos_anterior %>% filter(edad > 20 & edad < 40)
-set.seed(198)
+
+set.seed(198) # Semilla para repetibilidad de estudio
 n <- 350
+
 adulto_joven <- adulto_joven %>% sample_n(n) %>% select(sexo, ecivil, edad)
 solteros <- adulto_joven %>% filter(ecivil == "Soltero(a)" & sexo == "Hombre")
 solteros_edad <- solteros$edad
 solteras <- adulto_joven %>% filter(ecivil == "Soltero(a)" & sexo == "Mujer")
 solteras_edad <- solteras$edad
 
+# Ajustamos datos para la prueba a realizar...
+
 edad <- c(solteros_edad, solteras_edad)
 genero <- c(rep("M", length(solteros_edad)), rep("F", length(solteras_edad)))
 datos_df <- data.frame(edad, genero)
 
+# Veamos la normalidad de los datos, para saber qué método debemos utilizar
+# o si directamente podemos utilizar una prueba paramétrica típica:
+
 # Comprobar normalidad
-g <- ggqqplot (datos_df, x = "edad",facet.by = "genero" ,
-               palette = c ("blue","red") , color = "genero")
-print(g)
+g_mf <- ggqqplot(datos_df, x = "edad", facet.by = "genero" ,
+               palette = c("red", "blue") , color = "genero")
+print(g_mf)
+
+# Como en el gráfico Q-Q notamos que muchos puntos escapan
+# del margen de normalidad (generado por la función) por lo
+# que debemos trabajar los datos problemáticos, al no poder
+# utilizar pruebas típicas.
+
+# Como tenemos grupos independientes (mujeres y hombres) con muestras
+# de datos problemáticos, utilizaremos la prueba
+# de Yuen para dos muestras independientes.
 
 alfa2 <- 0.05
 
-# Ver poda del 20 %
+# Vemos cómo son los gráficos si realizáramos una poda:
+
 gamma <- 0.2
 n_a <- length(solteros_edad)
 n_b <- length (solteras_edad)
@@ -91,15 +118,31 @@ poda_a <- n_a*gamma
 poda_b <- n_b*gamma
 a_truncada <- solteros_edad[poda_a:(n_a-poda_a)]
 b_truncada <- solteras_edad[poda_b:(n_b-poda_b)]
-tiempo <- c(a_truncada, b_truncada)
-algoritmo <- c(rep("M", length(a_truncada)), rep("F", length(b_truncada)))
+edad <- c(a_truncada, b_truncada)
+genero <- c(rep("M", length(a_truncada)), rep("F", length(b_truncada)))
 datos_truncados <- data.frame(edad, genero)
 g <- ggqqplot(datos_truncados, x="edad",facet.by = "genero",
-              palette = c("blue", "red") , color = "genero" )
+              palette = c("red", "blue") , color = "genero" )
 print(g) 
-# Aplicar prueba de Yuen
+
+# Vemos que al realizar la poda, el margen de normalidad para los puntos
+# se hace más grande y también los datos calzan mejor a esta franja, lo que nos dice
+# que un procedimiento con la prueba de Yuen entregará buenos resultados
+# ya que internamente utiliza la media truncada y winsorizada.
+
+# Como funciona la poda, utilizamos la prueba de Yuen, con más seguridad.
+# Aplicar prueba de Yuen:
 prueba_yuen <- yuen(edad ~ genero, data=datos_df, tr=gamma)
 print(prueba_yuen)
+
+
+# Tras realizar la prueba, tenemos que nuestro p = 0.089 y es mayor a alfa.
+# Por ello, diremos, con un 95% de confianza, que la edad promedio de
+# hombres y mujeres solteras es distinta.
+
+# Con esta información, claramente los desarrolladores de la supuesta
+# aplicación de citas pueden saber correctamente a qué usuarios dirigir 
+# su publicidad (hombres o mujeres).
 
 ###############
 ###############
