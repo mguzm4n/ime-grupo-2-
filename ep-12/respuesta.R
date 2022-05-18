@@ -138,11 +138,12 @@ print(prueba_yuen)
 
 # Tras realizar la prueba, tenemos que nuestro p = 0.089 y es mayor a alfa.
 # Por ello, diremos, con un 95% de confianza, que la edad promedio de
-# hombres y mujeres solteras es distinta.
+# hombres y mujeres solteras es igual, o bien, fallamos en rechazar
+# la hipótesis nula.
 
 # Con esta información, claramente los desarrolladores de la supuesta
 # aplicación de citas pueden saber correctamente a qué usuarios dirigir 
-# su publicidad (hombres o mujeres).
+# su publicidad.
 
 ###############
 ###############
