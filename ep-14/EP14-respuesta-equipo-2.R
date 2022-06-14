@@ -76,9 +76,6 @@ datos_modelo_nosobrepeso <- datos_seleccionados[61:100, ]
 datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_nosobrepeso)
 
 
-# Desde el EP anterior buscamos las variables que necesitábamos
-
-
 # Seleccionamos 40 personas para el entrenamiento del modelo
 # 20 deben tener sobrepeso
 datos_evaluacion_sobrepeso <- datos_seleccionados[41:60, ]
@@ -141,15 +138,20 @@ mejor_modelo <- step(modelo_nulo,
 # Seleccionaremos dos variables de entre las 8 que utilizó el algoritmo para encontrar
 # el mejor modelo.
 
-# En este caso, al ver cada iteración del algoritmo, notamos que luego de dos iteraciones
+# En este caso, al ver cada iteración del algoritmo, notamos que luego de cinco iteraciones
 # no puede agregar más predictores al objeto de regresión logística, y se detiene.
 # En este caso, los predictores están dados en la fórmula abajo.
 
-formula <- EN ~ Navel.Girth + Bicep.Girth + Calf.Maximum.Girth
+formula <- EN ~ Chest.Girth + Navel.Girth + Calf.Maximum.Girth
 
+modelo_elegido <- glm(formula,
+                      family = binomial(link = "logit"),
+                      data = datos_modelo)
 
-
-# Evaluar la confiabilidad de los modelos (i.e. que tengan un buen nivel de ajuste y son generalizables) 
+# 7. Evaluar la confiabilidad de los modelos (i.e. que tengan un buen nivel de ajuste y son generalizables) 
 # y "arreglarlos" en caso de que tengan algún problema.
-# Usando código estándar, evaluar el poder predictivo de los modelos con los datos de las 0 personas que
+
+
+
+# 8. Usando código estándar, evaluar el poder predictivo de los modelos con los datos de las 0 personas que
 # no se incluyeron en su construcción en términos de sensibilidad y especificidad.
