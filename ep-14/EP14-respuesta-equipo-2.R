@@ -72,10 +72,6 @@ datos_seleccionados$Navel.Girth <- muestra$Navel.Girth
 # 40 deben tener sobrepeso
 
 
-# datos_modelo_nosobrepeso <- datos_seleccionados[1:40, ]
-# datos_modelo_sobrepeso <- datos_seleccionados[61:100, ]
-# datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_nosobrepeso)
-
 datos_modelo_sobrepeso <- datos_seleccionados %>% filter(EN == 1) %>% sample_n(40, replace = FALSE)
 datos_modelo_restante <- datos_seleccionados %>% sample_n(40, replace = FALSE)
 datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_restante)
@@ -84,10 +80,6 @@ datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_restante)
 # Seleccionamos 40 personas para el entrenamiento del modelo
 # 20 deben tener sobrepeso
 
-
-# datos_evaluacion_nosobrepeso <- datos_seleccionados[41:60, ]
-# datos_evaluacion_sobrepeso <- datos_seleccionados[101:120, ]
-#datos_evaluacion <- bind_rows(datos_evaluacion_sobrepeso, datos_evaluacion_nosobrepeso)
 
 datos_evaluacion_sobrepeso <- datos_seleccionados %>% filter(EN == 1) %>% sample_n(20, replace = FALSE)
 datos_evaluacion_restante <- datos_seleccionados %>% sample_n(20, replace = FALSE)
@@ -212,7 +204,7 @@ print(correlaciones_mult_variables)
 # En este caso, debemos tener el paquete 'car', para utilizar el test de Durbin-Watson
 # donde H_0 determina que no existe correlación entre los residuos.
 prueba_residuos <- durbinWatsonTest(modelo_elegido)
-print(prueba_residuos)
+cat("Prueba de independencia de residuos (D-W-Test)/P-value = ", prueba_residuos$p, "\n")
 
 ###########################################################################################################
 ###########################################################################################################
