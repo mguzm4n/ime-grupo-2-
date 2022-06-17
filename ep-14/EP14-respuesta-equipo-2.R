@@ -39,7 +39,7 @@ muestra <- bind_rows(muestra1, muestra2)
 # En este caso consideramos:
 # 1: Sobrepeso
 # 0: Sin Sobrepeso
-EN <- muestra$IMC > 25
+EN <- muestra$IMC >= 25
 
 # Técnica para convertir booleanos a valores numéricos (1 y 0)
 muestra$EN <- EN * 1
@@ -71,18 +71,27 @@ datos_seleccionados$Navel.Girth <- muestra$Navel.Girth
 # Seleccionamos 80 personas para la construcción del modelo
 # 40 deben tener sobrepeso
 
-datos_modelo_nosobrepeso <- datos_seleccionados[1:40, ]
-datos_modelo_sobrepeso <- datos_seleccionados[61:100, ]
 
-datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_nosobrepeso)
+# datos_modelo_nosobrepeso <- datos_seleccionados[1:40, ]
+# datos_modelo_sobrepeso <- datos_seleccionados[61:100, ]
+# datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_nosobrepeso)
+
+datos_modelo_sobrepeso <- datos_seleccionados %>% filter(EN == 1) %>% sample_n(40, replace = FALSE)
+datos_modelo_restante <- datos_seleccionados %>% sample_n(40, replace = FALSE)
+datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_restante)
 
 
 # Seleccionamos 40 personas para el entrenamiento del modelo
 # 20 deben tener sobrepeso
 
-datos_evaluacion_nosobrepeso <- datos_seleccionados[41:60, ]
-datos_evaluacion_sobrepeso <- datos_seleccionados[101:120, ]
-datos_evaluacion <- bind_rows(datos_evaluacion_sobrepeso, datos_evaluacion_nosobrepeso)
+
+# datos_evaluacion_nosobrepeso <- datos_seleccionados[41:60, ]
+# datos_evaluacion_sobrepeso <- datos_seleccionados[101:120, ]
+#datos_evaluacion <- bind_rows(datos_evaluacion_sobrepeso, datos_evaluacion_nosobrepeso)
+
+datos_evaluacion_sobrepeso <- datos_seleccionados %>% filter(EN == 1) %>% sample_n(20, replace = FALSE)
+datos_evaluacion_restante <- datos_seleccionados %>% sample_n(20, replace = FALSE)
+datos_evaluacion <- bind_rows(datos_evaluacion_sobrepeso, datos_evaluacion_restante)
 
 
 # 4.
