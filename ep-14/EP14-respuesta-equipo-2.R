@@ -80,7 +80,6 @@ datos_modelo <- bind_rows(datos_modelo_sobrepeso, datos_modelo_restante)
 # Seleccionamos 40 personas para el entrenamiento del modelo
 # 20 deben tener sobrepeso
 
-
 datos_evaluacion_sobrepeso <- datos_seleccionados %>% filter(EN == 1) %>% sample_n(20, replace = FALSE)
 datos_evaluacion_restante <- datos_seleccionados %>% sample_n(20, replace = FALSE)
 datos_evaluacion <- bind_rows(datos_evaluacion_sobrepeso, datos_evaluacion_restante)
@@ -202,11 +201,83 @@ print(correlaciones_mult_variables)
 # 2. Los residuos deben ser independientes entre sí.
 
 # En este caso, debemos tener el paquete 'car', para utilizar el test de Durbin-Watson
-# donde H_0 determina que no existe correlación entre los residuos.
+# donde H_0 determina que no existe autocorrelación entre los residuos.
 prueba_residuos <- durbinWatsonTest(modelo_elegido)
 cat("Prueba de independencia de residuos (D-W-Test)/P-value = ", prueba_residuos$p, "\n")
+
+# Vemos que se falla en rechazar la hipótesis nula, es decir, los residuos son independientes.
+
+# Por último, verificamos la multicolinealidad entre los predictores, usando
+# el factor de inflación de la varianza (VIF) y las tolerancias, como en el EP anterior.
+
+vifs <- vif(modelo_elegido)
+cat("VIFs:\n", vifs, "\n")
+
+cat("Tolerancias:\n", 1 / vifs, "n")
+cat("mean(VIFs) = ", mean(vifs), "\n")
+
+# De lo anterior, notamos que el promedio de los VIF para las variables
+# es de 1.16, es decir, se aleja en una proporción mínima de 1,
+# mostrando que el modelo no se encuentra sesgado (preocuparse si está muy lejano de 1).
+# Por otro lado, las tolerancias son mayores a 0.2.
+# Por ello, al cumplirse (1), (2) y la multicolinealidad no necesita ser corregido,
+# concluimos que estamos ante un modelo, por lo menos, válido para ser utilizado formalmente.
+
+
+# Aparte de la evaluación de condiciones anterior, esto solo nos habla de la validez del modelo,
+# es decir, sabemos que estamos tomando un modelo coherente. Sin embargo, podríamos mejorar
+# este mismo viendo los valores con sobreinfluencia y valores atípicos.
+
+# Ahora, falta evaluar el poder predictivo en el punto 8.
 
 ###########################################################################################################
 ###########################################################################################################
 # 8. Usando código estándar, evaluar el poder predictivo de los modelos con los datos de las personas que
 # no se incluyeron en su construcción en términos de sensibilidad y especificidad.
+
+# Se utilizará el dataframe "datos_evaluacion" formado desde 
+# la separacion de 40 datos desde una muestra de 120 hombres, en donde 60 tenían sobrepeso y 60 no.
+# Se asegura que al menos 20 hombres tienen sobrepeso en estos 40 datos.
+
+# Evaluación para modelo múltiple en RLog:
+
+umbral <- 0.5
+probs_p <- predict(modelo_elegido, datos_evaluacion,
+                   type = "response")
+
+preds_p <- sapply(probs_p, function(p) ifelse(p >= umbral, "1", "0"))
+preds_p <- factor(preds_p, levels = levels(datos_seleccionados[["EN"]]))
+
+
+# Obtenemos la curva de calibración
+# En este caso evaluamos la precisión del modelo
+# Vemos que la curva  se aleja bastante de la diagonal, mostrando una precisión aceptable.
+# (En este caso, nos referimos a 'curva' aunque se grafica como escalones)
+ROC_p1 <- roc(datos_evaluacion[["EN"]], probs_p)
+plot(ROC_p)
+
+# Evaluación para modelo de una variable (la elegida: Navel.Girth - grosor del ombligo)
+
+probs_p <- predict(modelo_inicial, datos_evaluacion,
+                   type = "response")
+
+preds_p <- sapply(probs_p, function(p) ifelse(p >= umbral, "1", "0"))
+preds_p <- factor(preds_p, levels = levels(datos_seleccionados[["EN"]]))
+
+ROC_p2 <- roc(datos_evaluacion[["EN"]], probs_p)
+plot(ROC_p)
+
+
+# También podemos sobreponer los gráficos para evaluar los modelos a la vez:
+plot(ROC_p1, col = 1, lty = 2, main = "Gráficos curvas ROC")
+plot(ROC_p2, col = 4, lty = 3, add = TRUE) 
+
+# En este caso, la curva azul corresponde a la curva para el modelo de una variable.
+# Tenemos indicios de haber mejorado correctamente el modelo al adicionar las dos variables
+# nombradas en el paso 6.
+
+# En consecuencia, diremos que el modelo con tres predictores ajusta mejor nuestros datos
+# que el modelo que considera solamente el grosor del ombligo (en el objeto de modelo_inicial).
+
+
+
