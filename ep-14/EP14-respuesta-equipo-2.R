@@ -56,6 +56,10 @@ for(column_name in variables){
   datos_seleccionados[[column_name]] <- muestra[[column_name]]
 }
 
+
+# Vemos las estadísticas descriptivas de cada variable (en columnas)
+print(summary(datos_seleccionados))
+
 # Añadimos la variable IMC ya que al crear un nuevo dataframe con las variables azarosas elegidas
 # no lo terminamos por añadir
 
@@ -227,6 +231,75 @@ cat("mean(VIFs) = ", mean(vifs), "\n")
 # Aparte de la evaluación de condiciones anterior, esto solo nos habla de la validez del modelo,
 # es decir, sabemos que estamos tomando un modelo coherente. Sin embargo, podríamos mejorar
 # este mismo viendo los valores con sobreinfluencia y valores atípicos.
+
+
+# Detectar valores atípicos:
+plot(modelo_elegido)
+
+# Notamos en el primer gráfico entregado al utilizar plot() sobre el modelo logístico múltiple
+# solo dos valores que se ven atípicos dentro de los residuos.
+
+# Residuos y estadísticas:
+output <- data.frame(predicted.probabilities = fitted(modelo_elegido))
+output[["standardized.residuals"]] <- rstandard(modelo_elegido)
+output[["studentized.residuals"]] <- rstudent(modelo_elegido)
+output[["cooks.distance"]] <- cooks.distance(modelo_elegido)
+output[["dfbeta"]] <- dfbeta(modelo_elegido)
+output[["dffit"]] <- dffits(modelo_elegido)
+output[["leverage"]] <- hatvalues(modelo_elegido)
+
+# Evaluar residuos estandarizados que escapen a la normalidad 
+# 95 % de los residuos estandarizados deberían estar entre
+# -1.96 y 1.96 , y 99 % entre -2.58 y 2.58 
+sospechosos1 <- which(abs(output[["standardized.residuals"]]) > 1.96)
+sospechosos1 <- sort(sospechosos1) 
+cat("\n")
+cat(" Residuos estandarizados fuera del 95% esperado\n ")
+print(rownames(datos_modelo[sospechosos1,]))
+
+# Como veíamos anteriormente, estos son los dos valores que observábamos en el gráfico de plot(modelo_elegido).
+
+# Revisar casos con distancia de Cook mayor a uno
+sospechosos2 <- which(output[["cooks.distance"]] > 1)
+# En este punto vemos que length(sospechosos2) = 0, por lo tanto, no existen casos de este tipo (D.C > 1)
+
+# Revisar casos cuyo apalancamiento sea más del doble
+# o triple del apalancamiento promedio
+leverage.promedio <- ncol(datos_modelo)/nrow(datos_seleccionados)
+sospechosos3 <- which(output[["leverage"]] > leverage.promedio)
+sospechosos3 <- sort ( sospechosos3 )
+cat("\n\n Residuales con levarage fuera de rango ( > ")
+cat(round(leverage.promedio , 3), " ) " , " \n " , sep = "" )
+print(rownames(datos_modelo[ sospechosos3 , ]))
+
+# En este caso, nos podemos "preocupar", ya que ahora existen más valores
+# con apalancamiento fuera de rango, sin embargo, hemos tenido 
+# buenas evaluaciones en las secciones anteriores.
+
+# Revisar casos con DFBeta >= 1
+sospechosos4 <- which(apply(output[["dfbeta"]] >= 1, 1, any))
+sospechosos4 <- sort(sospechosos4)
+names(sospechosos4) <- NULL
+cat("\n\n Residuales con DFBeta sobre 1 \n" )
+print(rownames(datos_modelo[sospechosos4, ]))
+
+# Acá encontramos nuevos valores con DFBeta sobre 1, que podríamos evaluar eliminar.
+
+
+# Detalle de las observaciones posiblemente atípicas:
+# En este caso, sería una especie de "summarise" para ver el panorama completo.
+
+sospechosos <- c(sospechosos1, sospechosos2, sospechosos3, sospechosos4)
+sospechosos <- sort(unique(sospechosos))
+cat("\n\n Casos sospechosos \n" )
+print(datos_modelo[sospechosos , ])
+cat("\n\n")
+print(output[sospechosos, ])
+
+# Como vimos que nuestro modelo cumplía bastante bien las condiciones (1), (2) y la multicolinealidad
+# se decide no modificar ningún dato, ni eliminar variables, ya que vimos que efectivamente disminuye
+# el AIC con las que ya tenemos.
+
 
 # Ahora, falta evaluar el poder predictivo en el punto 8.
 
