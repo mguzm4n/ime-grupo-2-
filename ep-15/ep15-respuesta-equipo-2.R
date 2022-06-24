@@ -103,7 +103,7 @@ particiones <- createDataPartition(datos_modelo$IMC,
                                    list = FALSE)
 
 entrenamiento <- datos_modelo[particiones, ]
-evaluacion <- datos_modelo[-particiones, ]
+evaluacion_1 <- datos_modelo[-particiones, ]
 
 
 # Este será el dataframe de 'features'
@@ -132,4 +132,65 @@ feature_select_model <- rfe(x = x_entrenamiento,
                             y = y_entrenamiento,
                             sizes = c(15:20),
                             rfeControl = control)
-                            
+
+# La función rfe nos entrega por sí sola el top cinco de las variables.
+# Para visualizar todos los que ha seleccionado, utilizamos la función predictors().
+# Obtenemos los predictores que selecciona la función RFE
+# obteniendo 17 en total:
+
+print(predictors(feature_select_model))
+
+
+################################################################################
+################################################################################
+# 5. Usando RFE, construir un modelo de regresión logística múltiple para la variable 
+# EN que incluya el conjunto, de entre dos y seis, predictores que entregue la mejor 
+# curva ROC y que utilice validación cruzada dejando uno fuera para evitar el sobreajuste 
+# (obviamente no se debe considerar las variables Peso, Estatura -Weight y Height respectivamente- ni IMC).
+
+
+# Configuramos el objeto de control para función rfe específicamente
+# para que utilice regresión logística: por ello, se utilizan las funciones desde
+# lrFuncs (logistic regression functions).
+
+control <- rfeControl(functions = lrFuncs,
+                      method = "LOOCV", # Especificar "leave one out" Cross Validation.
+                      number = 5, # k = 5 pliegues
+                      verbose = FALSE)
+
+
+# Arreglamos los conjuntos de datos nuevamente...
+# Agregamos variable EN ya que antes se había eliminado
+
+datos_modelo$IMC <- NULL # volvemos a sacar IMC
+datos_modelo$EN <- datos_total$EN
+
+
+# Particionamos el set de datos
+# Particiones: 0.8 entrenamiento, 0.2 evaluación para el modelo RLog
+particiones <- createDataPartition(datos_modelo$EN, 
+                                   p = 0.8, 
+                                   list = FALSE)
+
+entrenamiento <- datos_modelo[particiones, ]
+evaluacion_2 <- datos_modelo[-particiones, ]
+
+
+# Este será el dataframe de 'features'
+x_entrenamiento <- entrenamiento[, -24] # quitar EN (index 24)
+
+# Dataframe de la variable de respuesta 
+y_entrenamiento <- entrenamiento[, 24] # seleccionar solo columna de EN
+
+
+# Aplicamos RFE - especificando entre 2 a 6 variables.
+feature_select_model <- rfe(x = x_entrenamiento,
+                            y = y_entrenamiento,
+                            sizes = c(2:6),
+                            rfeControl = control)
+
+# aqui da error
+
+################################################################################
+################################################################################
+# 6. Pronunciarse sobre la confiabilidad y el poder predictivo de los modelos obtenidos.
