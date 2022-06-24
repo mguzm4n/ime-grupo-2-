@@ -1,7 +1,7 @@
 library(dplyr)
 library(caret)
 library(leaps)
-
+library(pROC)
 datos <- read.csv2("EP13 Datos.csv")
 
 
@@ -149,21 +149,11 @@ print(predictors(feature_select_model))
 # (obviamente no se debe considerar las variables Peso, Estatura -Weight y Height respectivamente- ni IMC).
 
 
-# Configuramos el objeto de control para función rfe específicamente
-# para que utilice regresión logística: por ello, se utilizan las funciones desde
-# lrFuncs (logistic regression functions).
-
-control <- rfeControl(functions = lrFuncs,
-                      method = "LOOCV", # Especificar "leave one out" Cross Validation.
-                      number = 5, # k = 5 pliegues
-                      verbose = FALSE)
-
-
 # Arreglamos los conjuntos de datos nuevamente...
 # Agregamos variable EN ya que antes se había eliminado
 
 datos_modelo$IMC <- NULL # volvemos a sacar IMC
-datos_modelo$EN <- datos_total$EN
+datos_modelo$EN <- as.factor(datos_total$EN)
 
 
 # Particionamos el set de datos
@@ -183,13 +173,51 @@ x_entrenamiento <- entrenamiento[, -24] # quitar EN (index 24)
 y_entrenamiento <- entrenamiento[, 24] # seleccionar solo columna de EN
 
 
+
+# Configuramos el objeto de control para función rfe específicamente
+# para que utilice regresión logística: por ello, se utilizan las funciones desde
+# lrFuncs (logistic regression functions).
+
+
+# Agregamos la función que permite utilizar la métrica ROC (investigado en Google)
+
+lrFuncs$summary <- twoClassSummary
+control <- rfeControl(functions = lrFuncs,
+                      method = "LOOCV", # Especificar "leave one out" Cross Validation.
+                      number = 5, # k = 5 pliegues,
+                      verbose = FALSE)
+
+
 # Aplicamos RFE - especificando entre 2 a 6 variables.
-feature_select_model <- rfe(x = x_entrenamiento,
+feature_select_model_2 <- rfe(x = x_entrenamiento,
                             y = y_entrenamiento,
                             sizes = c(2:6),
-                            rfeControl = control)
+                            rfeControl = control,
+                            metric = "ROC")
 
-# aqui da error
+# Vemos que obtenemos warnings - se deben mayoritariamente a los diferentes
+# modelos que la función rfe intenta crear al realizar la selección de variables.
+
+# Finalmente, obtenemos los predictores:
+
+print(predictors(feature_select_model_2))
+
+# Ahora se enumeran, ya que son solo seis, no como en el caso anterior donde
+# resultaba en 17.
+
+# Calf.Maximum.Girth, Waist.Girth, Age, Bicep.Girth y Biiliac.diameter
+
+# Además, haciendo una llamada al objeto feature_select_model_2, notamos que
+# efectivamente este modelo entrega la mejor curva ROC (Area Under the Curve/ROC = 0.9231).
+
+# Variables    ROC
+# 2           0.9019   
+# 3           0.8944 - Notamos que disminuye el valor con 3 variables
+# 4           0.9144   
+# 5           0.9181   
+# 6           0.9231 - Vemos que con seis variables encontramos un buen modelo
+# 23          0.9047 - Este es el modelo completo que genera la función RFE 
+
 
 ################################################################################
 ################################################################################
