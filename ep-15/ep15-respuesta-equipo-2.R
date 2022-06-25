@@ -245,4 +245,20 @@ cat("MSE_mlr = ", mse_m1, "\n\n")
 # de apenas +-1.62 para cada predicción.
 
 # Ahora evaluamos el modelo de regresión logística obtenido con recursive feature elimination:
+probs <- predict(feature_select_model_2$fit, 
+                 evaluacion_2, 
+                 type = "response")
+
+# Seteamos el umbral de decisión
+umbral <- 0.5
+
+preds_e <- sapply(probs, function(p) ifelse(p >= umbral, "1", "0"))
+preds_e <- factor(preds_e, levels = levels(entrenamiento[["EN"]]))
+ROC_e <- roc(evaluacion_2[["EN"]], probs)
+plot(ROC_e)
+
+# Vemos que la curva se aleja bastante de la línea recta, lo que es un indicio favorable.
+# Calculemos el AUC (área bajo ella) para medir qué tan buena es la curva numéricamente.
+
+cat("AUC = ", auc(evaluacion_2[["EN"]], probs), "\n")
 
