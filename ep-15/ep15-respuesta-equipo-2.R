@@ -86,11 +86,6 @@ evaluacion <- train(formula,
 # https://www.projectpro.io/recipes/use-rfe-r
 # https://topepo.github.io/caret/recursive-feature-elimination.html
 
-# Arreglamos los dataframes
-
-# EN ya está fuera desde el paso 3.
-datos_modelo$Weight <- NULL
-datos_modelo$Height <- NULL
 
 # Restauramos variable IMC eliminada en paso 3.
 datos_modelo$IMC <- datos_total$IMC
@@ -107,10 +102,16 @@ evaluacion_1 <- datos_modelo[-particiones, ]
 
 
 # Este será el dataframe de 'features'
-x_entrenamiento <- entrenamiento[, -24] # quitar IMC
+x_entrenamiento <- entrenamiento[, -26] # selecciono todo menos IMC
+
+# EN ya estaba fuera. Eliminamos altura y peso.
+x_entrenamiento$Weight <- NULL
+x_entrenamiento$Height <- NULL
 
 # Dataframe de la variable de respuesta 
-y_entrenamiento <- entrenamiento[, 24] # seleccionar solo columna de IMC
+y_entrenamiento <- entrenamiento$IMC # seleccionar solo columna de IMC
+
+
 
 # Implementar la "Recursive Feature Selection":
 
@@ -128,6 +129,7 @@ control <- rfeControl(functions = lmFuncs,
 
 # Aplicamos RFE, especificando que queremos de entre 15 a 20 variables seleccionadas.
 
+set.seed(2231) # Debemos poner la semilla inmediatamente antes - si no hacemos esto siempre se generará modelo nuevo
 feature_select_model <- rfe(x = x_entrenamiento,
                             y = y_entrenamiento,
                             sizes = c(15:20),
@@ -136,7 +138,7 @@ feature_select_model <- rfe(x = x_entrenamiento,
 # La función rfe nos entrega por sí sola el top cinco de las variables.
 # Para visualizar todos los que ha seleccionado, utilizamos la función predictors().
 # Obtenemos los predictores que selecciona la función RFE
-# obteniendo 17 en total:
+# obteniendo 15 en total:
 
 print(predictors(feature_select_model))
 
@@ -149,11 +151,9 @@ print(predictors(feature_select_model))
 # (obviamente no se debe considerar las variables Peso, Estatura -Weight y Height respectivamente- ni IMC).
 
 
-# Arreglamos los conjuntos de datos nuevamente...
 # Agregamos variable EN ya que antes se había eliminado
 
-datos_modelo$IMC <- NULL # volvemos a sacar IMC
-datos_modelo$EN <- as.factor(datos_total$EN)
+datos_modelo$EN <- as.factor(datos_total$EN) # Arreglar la variable categórica, para que no se muestre el warning (aun funciona sin este)
 
 
 # Particionamos el set de datos
@@ -167,10 +167,15 @@ evaluacion_2 <- datos_modelo[-particiones, ]
 
 
 # Este será el dataframe de 'features'
-x_entrenamiento <- entrenamiento[, -24] # quitar EN (index 24)
+x_entrenamiento <- entrenamiento[, -27] # quitar EN (index 24)
+# Eliminamos variables que obviamente predicen bien el EN, ya que fue creada a partir de estos.
+x_entrenamiento$IMC <- NULL
+x_entrenamiento$Weight <- NULL
+x_entrenamiento$Height <- NULL
 
-# Dataframe de la variable de respuesta 
-y_entrenamiento <- entrenamiento[, 24] # seleccionar solo columna de EN
+
+# Dataframe consistente solo de la var. EN, para introducir a la función RFE:
+y_entrenamiento <- entrenamiento$EN # seleccionar solo columna de EN
 
 
 
@@ -188,7 +193,9 @@ control <- rfeControl(functions = lrFuncs,
                       verbose = FALSE)
 
 
-# Aplicamos RFE - especificando entre 2 a 6 variables.
+# Aplicamos Recursive Feature Elim. - especificando entre 2 a 6 variables.
+
+set.seed(2231) # Debemos poner la semilla inmediatamente antes - si no hacemos esto siempre se generará modelo nuevo
 feature_select_model_2 <- rfe(x = x_entrenamiento,
                             y = y_entrenamiento,
                             sizes = c(2:6),
@@ -202,23 +209,40 @@ feature_select_model_2 <- rfe(x = x_entrenamiento,
 
 print(predictors(feature_select_model_2))
 
-# Ahora se enumeran, ya que son solo seis, no como en el caso anterior donde
-# resultaba en 17.
+# Ahora se enumeran, ya que son solo dos, no como en el caso anterior donde
+# resultaba en 15.
 
-# Calf.Maximum.Girth, Waist.Girth, Age, Bicep.Girth y Biiliac.diameter
+# Waist.Girth y Calf.Maximum.Girth
 
 # Además, haciendo una llamada al objeto feature_select_model_2, notamos que
 # efectivamente este modelo entrega la mejor curva ROC (Area Under the Curve/ROC = 0.9231).
-
+print(feature_select_model_2)
 # Variables    ROC
-# 2           0.9019   
-# 3           0.8944 - Notamos que disminuye el valor con 3 variables
-# 4           0.9144   
-# 5           0.9181   
-# 6           0.9231 - Vemos que con seis variables encontramos un buen modelo
-# 23          0.9047 - Este es el modelo completo que genera la función RFE 
+# 2          0.9175 - notamos la mejor curva (AUC -> area bajo la curva ROC > más cercana a 1).
+# 3          0.9144 - Notamos que con 3 o 4 variables tampoco existe mucha diferencia.
+# 4          0.9125         
+# 5          0.8994 - acá disminuye bastante   
+# 6          0.9081         
+# 23         0.8772 - este es el modelo completo que genera el modelo para hacer la eliminación de features
 
+# Así, nos quedamos con las dos variables mencionadas antes, por simplicidad.
 
 ################################################################################
 ################################################################################
 # 6. Pronunciarse sobre la confiabilidad y el poder predictivo de los modelos obtenidos.
+
+
+# Evaluamos el poder predictivo, utilizando los datos de entrenamiento separados en los puntos
+# 4 y 5, para estos dos modelos.
+
+# Para el modelo de regresión lineal múltiple (pto. 4) tenemos:
+predict_m1 <- predict(feature_select_model$fit, evaluacion_1)
+error_m1 <- evaluacion_1$IMC - predict_m1 # Recordamos que la var. de respuesta era el IMC.
+mse_m1 <- mean(error_m1 ** 2)
+cat("MSE_mlr = ", mse_m1, "\n\n")
+
+# Vemos que el MSE es de 1.62: un valor bastante bajo, mostrando que tiene un buen poder predictivo,
+# de apenas +-1.62 para cada predicción.
+
+# Ahora evaluamos el modelo de regresión logística obtenido con recursive feature elimination:
+
